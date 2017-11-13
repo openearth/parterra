@@ -1,0 +1,345 @@
+body {
+    /* Use the Roboto font that is loaded in the <head> */
+    font-family: 'Roboto', sans-serif;
+}
+
+.hidden {
+    display: none;
+}
+
+.g-sign-in .button {
+    display: inline-block;
+    background: #4285f4;
+    color: white;
+    width: 190px;
+    border-radius: 5px;
+    white-space: nowrap;
+}
+
+.g-sign-in .button:hover {
+    cursor: pointer;
+}
+
+.g-sign-in .label {
+    font-weight: bold;
+}
+
+.g-sign-in .icon {
+    background: url('g-icon.png') transparent 5px 50% no-repeat;
+    display: inline-block;
+    vertical-align: middle;
+    width: 42px;
+    height: 42px;
+    border-right: #2265d4 1px solid;
+}
+
+.g-sign-in .button-text {
+    display: inline-block;
+    vertical-align: middle;
+    padding-left: 42px;
+    padding-right: 42px;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.map {
+    position: absolute;
+    top: 0px;
+    bottom: 0px;
+    left: 0px;
+    right: 33vw;
+}
+
+.map-alert {
+	position: absolute;
+	display: block;
+	padding-top: 10px;
+	padding-left: 12px;
+	font-size: 14px;
+	width: 150px;
+	text-align: left;
+	background: white;
+    background: rgba(255,255,255,0.8);
+	box-shadow: 0 0 15px rgba(0,0,0,0.2);
+	border-radius: 5px;
+}
+
+.side-bar {
+    position: absolute;
+    top: 0px;
+    right: 0px;
+    bottom: 0px;
+    width: 33vw;
+    overflow-y: auto;
+    padding: 7px;
+}
+
+.info {
+    padding: 6px 8px;
+    font: 14px/16px Arial, Helvetica, sans-serif;
+    background: white;
+    background: rgba(255,255,255,0.8);
+    box-shadow: 0 0 15px rgba(0,0,0,0.2);
+    border-radius: 5px;
+}
+
+.info-button {
+	background: none;
+}
+
+.info-fusiontables,
+.info-thresholdlevel,
+.info-buildinglevel,
+.info-buildinglevelheight,
+.info-roadwidth,
+.info-drivewayfraction,
+.info-layer,
+.info-layerheight,
+.info-roadoffset,
+.info-sidewalkoffset,
+.info-waterwidth,
+.info-waterdepth,
+.info-export {
+	display: none;
+}
+
+.info-fusiontables-shown,
+.info-thresholdlevel-shown,
+.info-buildinglevel-shown,
+.info-buildinglevelheight-shown,
+.info-roadwidth-shown,
+.info-drivewayfraction-shown,
+.info-layer-shown,
+.info-layerheight-shown,
+.info-roadoffset-shown,
+.info-sidewalkoffset-shown,
+.info-waterwidth-shown,
+.info-waterdepth-shown,
+.info-export-shown {
+	display: block;
+	margin-top: 5px;
+	margin-bottom: 5px;
+	padding: 10px;
+	border-radius: 2px;
+	background-color: white;
+	box-shadow: 0px 0px 5px gray;
+	overflow: auto;
+	font: 12px Arial;
+}
+
+.slider {
+
+}
+
+.legend {
+    line-height: 18px;
+    color: #555;
+}
+.legend i {
+    width: 18px;
+    height: 18px;
+    float: left;
+    margin-right: 8px;
+    opacity: 0.7;
+}
+
+.legend-value{
+	width: 60px;
+	margin-top: 3px;
+	margin-bottom: 3px;
+}
+
+#legend-min{
+	margin-left: 4px;
+}
+
+#my-code-wrapper {
+    /*TODO 100%*/
+    height: inherit;
+}
+
+.tab-content {
+    height: 94%;
+}
+
+.tab-pane {
+    height: inherit;
+}
+
+.intro-text {
+    padding: 20px 0px 0px 5px;
+}
+
+#intro-header {
+    font-size: 16px;
+    font-weight: bold;
+    padding-bottom: 5px;
+}
+
+.sub-element {
+    padding: 0px 0px 0px 5px;
+}
+
+.sub-header {
+    font-size: 14px;
+    font-weight: bold;
+    padding-bottom: 5px;
+}
+
+.attributions {
+	/*margin-top: 20px;*/     /* if placed on top of page */
+	margin-bottom: 10px;  /* if placed on bottom of page */
+}
+
+.input-text {
+    width: 60%;
+    margin: 5px 0px 5px 0px;
+    font-style: italic;
+}
+
+.project-info {
+	margin-top: 8px;
+	width: 250px;
+}
+
+.panel-group {
+    margin-top: 5px;
+}
+
+/*the entire accordion panel-heading is a link*/
+/*http://stackoverflow.com/a/19238787*/
+.panel-heading {
+    cursor: pointer;
+}
+
+.default-param-entry {
+	width: 75%;
+}
+
+.input-default-param {
+    width: 100px;
+}
+
+.osm-load-button {
+    margin-top: 5px;
+}
+
+.update-srtm-button {
+	margin-top: -5px;
+    margin-left: 5px;
+}
+
+.apply-config-button {
+	margin-top: 5px;
+    margin-left: 5px;
+}
+
+.filter-bounds {
+	margin-top: 0px;
+}
+
+.filter-draw-button {
+	display: inline;
+	margin-left: 10px;
+	margin-right: 10px;
+}
+
+.add-filter-button {
+    width: 100%;
+}
+
+.filter-type-title {
+    margin: 10px 0px 5px 0px;
+    font-weight: bold;
+}
+
+.filters-type {
+    display: block;
+}
+
+.filters-type-header {
+	margin-top: 10px;
+    font-weight: bold;
+}
+
+.filters-entry {
+    margin: 5px 0px 5px 0px;
+}
+
+.filters-entry-list {
+    margin-top: 5px;
+	width: 100%;
+}
+
+.input-text-filter {
+	display: inline;
+    width: 50%;
+}
+
+.filters-list-item {
+	display: inline;
+}
+
+.add-list-item-button {
+    background: none;
+}
+
+.remove-list-item-button {
+    background: none;
+}
+
+.panel-title-filter-edit {
+	display: inline;
+}
+
+.remove-filter-button {
+	margin-top: -8px;
+	float: right;
+	background: none;
+}
+
+#filter0-panel {
+	display: none;
+}
+
+#filter-type-buildings, #filter-type-roads, #filter-type-water {
+    margin-top: 10px;
+}
+
+.download_panel {
+  display: none;
+  width: 225px;
+  padding: 5px;
+  font-size: 14px;
+  font-weight: normal;
+}
+
+#download_prep {
+  display: none;
+  font-style: italic;
+}
+
+#link_dtm,
+#link_dsm,
+#link_metadata {
+  display: none;
+}
+
+.horizontal-buttons-list {
+	display: inline-block;
+	margin-top: 8px;
+}
+
+.export-button {
+	margin-left: 8px;
+}
+
+.export-explain-text {
+	margin-top: 10px;
+	font-style: italic;
+	font-size: 12px;
+}
+
+.load-example-button {
+	margin-top: 8px;
+}

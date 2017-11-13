@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<title>ParTerra-GEE</title>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+	<!-- Load the Roboto font. -->
+	<link href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet" type="text/css">
+
+	<!-- bundled dependencies -->
+	<script src="static/bundle.js"></script>
+
+	<!-- Bootstrap and plugins -->
+	<link rel="stylesheet" href="static/lib/bootstrap/css/bootstrap.min.css" />
+	<script src="static/lib/bootstrap-notify/bootstrap-notify.min.js"></script>
+	<script src="static/lib/bootstrap-validator/validator.min.js"></script>
+
+	<!-- Leaflet and plugins -->
+	<link rel="stylesheet" href="static/lib/leaflet/leaflet.css" />
+	<link rel="stylesheet" href="static/lib/leaflet.draw/leaflet.draw.css" />
+
+	<!-- for the GeoJSON editor -->
+	<link rel="stylesheet" href="static/lib/prism/prism.css" />
+	<link rel="stylesheet" href="static/lib/codeflask/codeflask.css" />
+	<script src="static/lib/prism/prism.js"></script>
+	<script src="static/lib/codeflask/codeflask.js"></script>
+	<script src="static/lib/geojsonhint/geojsonhint.js"></script>
+
+	<!-- User-defined functions for interacting with HTML -->
+	<script src="static/js/functions_html.js"></script>
+
+	<!-- User-defined stylesheet -->
+	<link rel="stylesheet" href="static/style.css" />
+</head>
+
+<body>
+	<div class="container-fluid">
+		<div id="map" class="map"></div>
+		<div class="side-bar">
+			<!-- Nav tabs -->
+			<ul id="tabs" class="nav nav-tabs">
+				<li class="active"><a href="#start" id="start-link" data-toggle="tab" title="Start here to fill out references to the OpenStreetMap Fusion Tables and set a geographical bounding box for your project."><b>Start</b></a></li>
+				<li><a href="#filters" id="filters-link" data-toggle="tab" title="Filter features within a polygon or within a valid tag range, and assign default terrain-related properties to them."><b>Filters</b></a></li>
+				<li><a href="#export" id="export-link" data-toggle="tab" title="Visualize your results in map view or export to GeoTIFF."><b>Export data</b></a></li>
+				<li><a href="#geojson" id="geojson-link" data-toggle="tab" title="Copy-paste historical sessions or store your current session in a text file.">Configuration</a></li>
+				<li><a href="#help" id="help-link" data-toggle="tab" title="Visit the help page.">Help</a></li>
+			</ul>
+
+			<!-- Tab panes -->
+			<div class="tab-content">
+				<div id="start" class="tab-pane fade in active">
+					<div class="intro-text">
+						<div id="intro-header"><span>Welcome to the PARTERRA web application! (IN DEVELOPMENT)</span></div>
+						<span>
+						This application allows you to fuse together data from OpenStreetMaps (OSM) and the Shuttle Radar Topography Mission (SRTM)
+						to create a high-resolution digital terrain model for any area in the world. The combination leads to very high resolution
+						terrain in well-mapped urban areas.<br><br>The tool requires the following steps:
+						</span>
+						<ul>
+						<li>Upload a downloaded OSM dataset to 2 fusion tables (polygons and lines). Fusion table is a Google Drive format for a GIS vector layer, this should be done outside this tool.</li>
+						<li>Start: Fill out the IDs of the fusion tables and your geographical project settings (domain and resolution).</li>
+						<li>Filters: Filter features (Buildings, Roads or waterways) within a polygon or within a valid tag range, and assign default terrain-related properties to them.</li>
+						<li>Export data: visualize the resulting terrain layers, based upon the filters and assigned terrain related properties.</li>
+						</ul>
+					</div>
+					<hr>
+					<div class="sub-element">
+						<div class="sub-header"><span>OSM features</span>
+							<button class="info-button btn btn-default btn-xs" id="info-button-fusiontables">i</button>
+							<div class="info-fusiontables">
+								<span>
+								Fill out the Fusion Table IDs of both the line (roads, waterways) and polygon (buildings) features here.
+								You can find these by opening your Google Drive in a browser, click on the relevant Fusion Table and look for the 'docid' in the URL.
+								Visit <a href="https://developers.google.com/chart/interactive/docs/fusiontables" target="_blank">https://developers.google.com/chart/interactive/docs/fusiontables</a>
+								for more information on Fusion Tables.
+								</span>
+							</div>
+							<!-- toggle the info panel -->
+							<script>
+							$("#info-button-fusiontables").click(function () {
+								$(".info-fusiontables").toggleClass("info-fusiontables-shown");
+							});
+							</script>
+						</div>
+						<span>Enter the IDs of the relevant Fusion Tables here:</span>
+						<input type="text" id="osm-input-lines" onchange="onchangeOSMLines()" class="input-text form-control" placeholder="< OSM lines FusionTable ID >">
+						<input type="text" id="osm-input-polys" onchange="onchangeOSMPolys()" class="input-text form-control" placeholder="< OSM polygons FusionTable ID >">
+						<button class="osm-load-button btn btn-primary" onclick="loadFusionTablesOSM()">Visualize OSM data</button>
+					</div>
+					<hr>
+					<!-- NOTE: button elements within form element cause page reload on click!! (which is why form element was removed from above sub-element) -->
+					<form data-toggle="validator" role="form">
+						<div class="sub-element">
+							<div class="sub-header"><span>Project settings</span></div>
+							<span>Enter or change the project bounding box (you can also use the map drawing tool) and cell size (in meters) here:</span>
+							<input type="text" id="bounding-box-input" class="input-text form-control" placeholder="< bounding box >" onchange="onchangeBounds()" required>
+							<div class="form-group has-feedback">
+								<div class="input-group">
+									<input type="number" id="cellsize-input" min="0.5" max="1000.0" step="0.5" class="input-text form-control" onchange="onchangeCellsize()" required>
+									<span class="glyphicon form-control-feedback" aria-hidden="true"></span>
+								</div>
+							</div>
+						</div>
+					</form>
+					<button class="update-srtm-button btn btn-primary" onclick="updateSRTM()">Update base layer</button>
+					<hr>
+					<div class="sub-element">
+						<div class="attributions">
+							<a href="https://www.deltares.nl/en/" target="_blank"><img border="0" src="static/images/deltares_tr.png" style="height:50px; margin-left:0px"></a>
+							<a href="https://www.ivm.vu.nl/en/" target="_blank"><img border="0" src="static/images/logo_tcm234-70179_edit.png" style="height:75px; margin-left:20px"></a>
+							<br>
+							<a href="http://www.trcs.or.tz/" target="_blank"><img border="0" src="static/images/logo_trcs.png" style="height:60px; margin-left:40px; margin-top:5px"></a>
+							<a href="http://www.climatecentre.org/" target="_blank"><img border="0" src="static/images/logo_cc_edit.png" style="height:45px; margin-left:40px; margin-top:6px"></a>
+							<br>
+							<a href="https://earthengine.google.com/" target="_blank"><img border="0" src="static/images/google_earthengine_powered_400px.png" style="height:40px; margin-left:30px; margin-top:25px"></a>
+						</div>
+					</div>
+				</div>
+				<div id="filters" class="tab-pane fade">
+					<div class="intro-text">
+						<span>
+						This tab allows you to set default values for terrain-related properties of buildings, roads (highway) and water bodies (waterway).
+						These default values are only used when no appropriate values (such as width, depth, amount of floors, threshold) are found in the already existing tags.
+						The properties are used to differentiate the terrain for each feature found.<br><br>
+						You can use default values for all buildings roads and water bodies throughout the complete project area, as well as customized values for feature groups
+						that are filtered on location (with a polygon) and specific key-value pairs. (e.g. “building=commercial”).<br><br>
+						Create a new custom filter by clicking the large '+' button at the bottom. The names of custom filters can be edited. Within each filter a selection of
+						key-value pairs can be made by entering values. If no value is entered, the key is assumed to be unused for that filter. Additional values can be added
+						to each key by clicking the '+' button.
+						</span>
+					</div>
+					<hr>
+					<div class="sub-element">
+						<div class="sub-header"><span>Default values</span></div>
+						<span>Enter default values for all relevant parameters below.</span>
+						<div class="panel-group" id="accordion">
+							<div class="panel panel-default">
+								<div class="panel-heading" data-parent="#accordion" data-toggle="collapse" data-target="#collapse1">
+									<h4 class="panel-title">
+										<a>Buildings</a>
+									</h4>
+								</div>
+								<div id="collapse1" class="panel-collapse collapse">
+									<div class="panel-body">
+										<table class="default-param-entry">
+											<tr>
+												<td>Threshold level:</td>
+												<td><input type="number" name="default-param-buildings-1" min="0" max="999" step="0.1" onchange="onchangeDefaults()" class="input-default-param form-control"></td>
+												<td><button class="info-button btn btn-default btn-xs" id="info-button-thresholdlevel">i</button></td>
+											</tr>
+											<tr>
+												<td>Building level:</td>
+												<td><input type="number" name="default-param-buildings-2" min="0" max="9999" step="1" onchange="onchangeDefaults()" class="input-default-param form-control"></td>
+												<td><button class="info-button btn btn-default btn-xs" id="info-button-buildinglevel">i</button></td>
+											</tr>
+											<tr>
+												<td>Building level height:</td>
+												<td><input type="number" name="default-param-buildings-3" min="0" max="9999" step="0.1" onchange="onchangeDefaults()" class="input-default-param form-control"></td>
+												<td><button class="info-button btn btn-default btn-xs" id="info-button-buildinglevelheight">i</button></td>
+											</tr>
+										</table>
+										<!-- info panel text -->
+										<div class="info-thresholdlevel">
+											<span>
+											Threshold level: Enter how high buildings are built relative to street level, in meters. Value should be zero when ground floor is at the same level as the street.
+											</span>
+										</div>
+										<div class="info-buildinglevel">
+											<span>
+											Building level: Enter the amount of floors that the building(s) consist of.
+											</span>
+										</div>
+										<div class="info-buildinglevelheight">
+											<span>
+											Building level height: Enter the (approximate) height of a single floor, in meters.
+											</span>
+										</div>
+										<!-- toggle the info panel(s) -->
+										<script>
+										$("#info-button-thresholdlevel").click(function () {
+											$(".info-thresholdlevel").toggleClass("info-thresholdlevel-shown");
+										});
+										$("#info-button-buildinglevel").click(function () {
+											$(".info-buildinglevel").toggleClass("info-buildinglevel-shown");
+										});
+										$("#info-button-buildinglevelheight").click(function () {
+											$(".info-buildinglevelheight").toggleClass("info-buildinglevelheight-shown");
+										});
+										</script>
+									</div>
+								</div>
+							</div>
+							<div class="panel panel-default">
+								<div class="panel-heading" data-parent="#accordion" data-toggle="collapse" data-target="#collapse2">
+									<h4 class="panel-title">
+										<a>Highways</a>
+									</h4>
+								</div>
+								<div id="collapse2" class="panel-collapse collapse">
+									<div class="panel-body">
+										<table class="default-param-entry">
+											<tr>
+												<td>Width:</td>
+												<td><input type="number" name="default-param-roads-1" min="0" max="999" step="0.1" onchange="onchangeDefaults()" class="input-default-param form-control"></td>
+												<td><button class="info-button btn btn-default btn-xs" id="info-button-roadwidth">i</button></td>
+											</tr>
+											<tr>
+												<td>Driveway fraction:</td>
+												<td><input type="number" name="default-param-roads-2" min="0" max="1" step="0.01" onchange="onchangeDefaults()" class="input-default-param form-control"></td>
+												<td><button class="info-button btn btn-default btn-xs" id="info-button-drivewayfraction">i</button></td>
+											</tr>
+											<tr>
+												<td>Layer:</td>
+												<td><input type="number" name="default-param-roads-3" min="0" max="999" step="1" onchange="onchangeDefaults()" class="input-default-param form-control"></td>
+												<td><button class="info-button btn btn-default btn-xs" id="info-button-layer">i</button></td>
+											</tr>
+											<tr>
+												<td>Layer height:</td>
+												<td><input type="number" name="default-param-roads-4" min="0" max="9999" step="0.1" onchange="onchangeDefaults()" class="input-default-param form-control"></td>
+												<td><button class="info-button btn btn-default btn-xs" id="info-button-layerheight">i</button></td>
+											</tr>
+											<tr>
+												<td>Road offset:</td>
+												<td><input type="number" name="default-param-roads-5" min="0" max="9999" step="0.1" onchange="onchangeDefaults()" class="input-default-param form-control"></td>
+												<td><button class="info-button btn btn-default btn-xs" id="info-button-roadoffset">i</button></td>
+											</tr>
+											<tr>
+												<td>Sidewalk offset:</td>
+												<td><input type="number" name="default-param-roads-6" min="0" max="9999" step="0.1" onchange="onchangeDefaults()" class="input-default-param form-control"></td>
+												<td><button class="info-button btn btn-default btn-xs" id="info-button-sidewalkoffset">i</button></td>
+											</tr>
+										</table>
+										<!-- info panel text -->
+										<div class="info-roadwidth">
+											<span>
+											Width: Enter the width of roads, in meters.
+											</span>
+										</div>
+										<div class="info-drivewayfraction">
+											<span>
+											Driveway fraction: Enter the fraction of the road that makes up the driveway (for example, 0.6 means that 60% of the road is used for driving, while 40% may be for pedestrians and is potentially elevated by sidewalks).
+											</span>
+										</div>
+										<div class="info-layer">
+											<span>
+											Layer: Enter the layering with respect to ground level (for example to offset bridges by a certain amount, if above 1, or offset culverts by a certain amount, if below 0).
+											</span>
+										</div>
+										<div class="info-layerheight">
+											<span>
+											Layer height: Enter the height in meters per layer.
+											</span>
+										</div>
+										<div class="info-roadoffset">
+											<span>
+											Road offset: Enter the offset height in meters of roads with respect to surrounding terrain. Can be used for elevated roads that potentially block water flow.
+											</span>
+										</div>
+										<div class="info-sidewalkoffset">
+											<span>
+											Sidewalk offset: Enter the offset height in meters of sidewalks. Can be used for elevated sidewalks and result in road conveyance capacity.
+											</span>
+										</div>
+										<!-- toggle the info panel(s) -->
+										<script>
+										$("#info-button-roadwidth").click(function () {
+											$(".info-roadwidth").toggleClass("info-roadwidth-shown");
+										});
+										$("#info-button-drivewayfraction").click(function () {
+											$(".info-drivewayfraction").toggleClass("info-drivewayfraction-shown");
+										});
+										$("#info-button-layer").click(function () {
+											$(".info-layer").toggleClass("info-layer-shown");
+										});
+										$("#info-button-layerheight").click(function () {
+											$(".info-layerheight").toggleClass("info-layerheight-shown");
+										});
+										$("#info-button-roadoffset").click(function () {
+											$(".info-roadoffset").toggleClass("info-roadoffset-shown");
+										});
+										$("#info-button-sidewalkoffset").click(function () {
+											$(".info-sidewalkoffset").toggleClass("info-sidewalkoffset-shown");
+										});
+										</script>
+									</div>
+								</div>
+							</div>
+							<div class="panel panel-default">
+								<div class="panel-heading" data-parent="#accordion" data-toggle="collapse" data-target="#collapse3">
+									<h4 class="panel-title">
+										<a>Waterways</a>
+									</h4>
+								</div>
+								<div id="collapse3" class="panel-collapse collapse">
+									<div class="panel-body">
+										<table class="default-param-entry">
+											<tr>
+												<td>Width:</td>
+												<td><input type="number" name="default-param-water-1" min="0" max="9999" step="0.1" onchange="onchangeDefaults()" class="input-default-param form-control"></td>
+												<td><button class="info-button btn btn-default btn-xs" id="info-button-waterwidth">i</button></td>
+											</tr>
+											<tr>
+												<td>Depth:</td>
+												<td><input type="number" name="default-param-water-2" min="0" max="9999" step="0.1" onchange="onchangeDefaults()" class="input-default-param form-control"></td>
+												<td><button class="info-button btn btn-default btn-xs" id="info-button-waterdepth">i</button></td>
+											</tr>
+										</table>
+										<!-- info panel text -->
+										<div class="info-waterwidth">
+											<span>
+											Width: Enter the width of water bodies, in meters.
+											</span>
+										</div>
+										<div class="info-waterdepth">
+											<span>
+											Depth: Enter the depth of water bodies, in meters.
+											</span>
+										</div>
+										<!-- toggle the info panel(s) -->
+										<script>
+										$("#info-button-waterwidth").click(function () {
+											$(".info-waterwidth").toggleClass("info-waterwidth-shown");
+										});
+										$("#info-button-waterdepth").click(function () {
+											$(".info-waterdepth").toggleClass("info-waterdepth-shown");
+										});
+										</script>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+					<hr>
+					<div class="sub-element">
+						<div class="sub-header"><span>Custom filters:</span></div>
+						<div class="panel-group" id="accordion-filters">
+							<div class="panel panel-default" id="filter0-panel">
+								<div class="panel-heading" id="panel-heading-filter0" data-parent="#accordion-filters" data-toggle="collapse" href="#collapse-filter0">
+									<h4 class="panel-title" id="panel-title-filter0">
+										<a>Filter 0:</a>
+										<div class="panel-title-filter-edit" id="panel-title-edit-filter0" contenteditable="true"><span>custom</span></div>
+										<!-- script to prevent enter/return key from creating a new line -->
+										<script>
+										$('div').on('keydown', function(e) {
+											if (e.keyCode == 13) {
+												e.preventDefault();
+											}
+										})
+										</script>
+										<button class="remove-filter-button btn" id="button-remove-filter0" onclick="
+											// get current filter number
+											var temp_filter_id = String(this.id).replace('button-remove-', '');
+											// get current filter element
+											var temp_filter = document.getElementById(temp_filter_id + '-panel');
+											// get parent element
+											var temp_parent = document.getElementById('accordion-filters');
+											// remove filter polygon
+											deleteFilterPolygon(temp_filter_id);
+											// remove filter
+											temp_parent.removeChild(temp_filter);
+										">X</button>
+									</h4>
+								</div>
+								<div class="panel-collapse collapse in" id="collapse-filter0">
+									<div class="panel-body" id="panel-body-filter0">
+										<div class="filter-bounds" id="filter-bounds-filter0">
+											<span><b>Location:</b></span>
+											<!--<input type="text" name="filter-bounds-input" class="input-text-filter form-control" placeholder="< default: project bounds >">-->
+											<button class="filter-draw-button" id="button-draw-filter0" onclick="
+												// get current filter number
+												var temp_filter_id = String(this.id).replace('button-draw-', '');
+												// enable drawing of polygon on map, and pass filter number as layer name
+												drawFilterPolygon(temp_filter_id);
+											">Draw</button>
+											<button class="filter-delete-button" id="button-delete-filter0" onclick="
+												// get current filter number
+												var temp_filter_id = String(this.id).replace('button-delete-', '');
+												// delete polygon
+												deleteFilterPolygon(temp_filter_id);
+											">Delete</button>
+										</div>
+										<div style="margin-top:8px;margin-bottom:5px;"><span><i>(default: project bounds)</i></span></div>
+										<div class="filter-type-title">
+											<span>Keys:</span>
+										</div>
+										<ul class="nav nav-tabs" id="filter-tabs-filter0">
+											<li class="active"><a href="#filter-type-buildings-filter0" id="filter-type-buildings-filter0-link" data-toggle="tab">Buildings</a></li>
+											<li><a href="#filter-type-roads-filter0" id="filter-type-roads-filter0-link" data-toggle="tab">Highways</a></li>
+											<li><a href="#filter-type-water-filter0" id="filter-type-water-filter0-link" data-toggle="tab">Waterways</a></li>
+										</ul>
+										<div class="tab-content" id="tab-content-filter0">
+											<div class="tab-pane fade in active" id="filter-type-buildings-filter0">
+												<div class="filters-type">
+													<div class="filters-type-header"><span>Values:</span></div>
+													<div class="filters-entry">
+														<table class="filters-entry-list" id="list-buildings-values-filter0">
+															<tr>
+																<td>1. <input type="text" name="filter0-buildings-value1" class="input-text-filter form-control" placeholder="< enter value here >"></td>
+															</tr>
+														</table>
+														<button class="add-list-item-button btn" id="button-buildings-values-filter0" onclick="
+															// get current filter number
+															var temp_filter_id = String(this.id).replace('button-buildings-values-', '');
+															// get current table entries
+															var temp_item = document.getElementById('list-buildings-values-' + temp_filter_id).children[0];
+															// get table entry count and add 1
+															var temp_count = temp_item.children.length + 1;
+															// create new elements and set attributes
+															var add_item  = document.createElement('tr');
+															var add_item2 = document.createElement('td');
+															var add_item3 = document.createTextNode(temp_count + '. ');
+															var add_item4 = document.createElement('input');
+															add_item4.type = 'text';
+															add_item4.className = 'input-text-filter form-control';
+															add_item4.name = temp_filter_id + '-buildings-value' + temp_count;
+															add_item4.placeholder = '< enter value here >';
+															var add_item5 = document.createElement('td');
+															var add_item6 = document.createElement('button');
+															add_item6.className = 'remove-list-item-button btn';
+															add_item6.id = temp_filter_id + '-buildings-value' + temp_count
+															add_item6.addEventListener('click', removeFilterTypeEntry);
+															var add_item7 = document.createTextNode('x');
+															// add elements together
+															add_item6.appendChild(add_item7);
+															add_item5.appendChild(add_item6);
+															add_item2.appendChild(add_item3);
+															add_item2.appendChild(add_item4);
+															add_item.appendChild(add_item2);
+															add_item.appendChild(add_item5);
+															// add complete element to current table
+															temp_item.appendChild(add_item);
+														">+</button>
+													</div>
+												</div>
+												<div class="filters-type">
+													<div class="filters-type-header"><span>Parameters:</span></div>
+													<div class="filters-entry">
+														<table class="filters-entry-list" id="list-buildings-params-filter0">
+															<tr>
+																<td>Threshold level:</td>
+																<td><input type="number" name="filter0-buildings-param1" min="0" max="999" step="0.1" value="0" class="input-text-filter form-control"></td>
+															</tr>
+															<tr>
+																<td>Building level:</td>
+																<td><input type="number" name="filter0-buildings-param2" min="0" max="9999" step="1" value="0" class="input-text-filter form-control"></td>
+															</tr>
+															<tr>
+																<td>Building level height:</td>
+																<td><input type="number" name="filter0-buildings-param3" min="0" max="9999" step="0.1" value="0" class="input-text-filter form-control"></td>
+															</tr>
+														</table>
+													</div>
+												</div>
+											</div>
+											<div class="tab-pane fade" id="filter-type-roads-filter0">
+												<div class="filters-type">
+													<div class="filters-type-header"><span>Values:</span></div>
+													<div class="filters-entry">
+														<table class="filters-entry-list" id="list-roads-values-filter0">
+															<tr>
+																<td>1. <input type="text" name="filter0-roads-value1" class="input-text-filter form-control" placeholder="< enter value here >"></td>
+															</tr>
+														</table>
+														<button class="add-list-item-button btn" id="button-roads-values-filter0" onclick="
+															// get current filter number
+															var temp_filter_id = String(this.id).replace('button-roads-values-', '');
+															// get current table entries
+															var temp_item = document.getElementById('list-roads-values-' + temp_filter_id).children[0];
+															// get table entry count and add 1
+															var temp_count = temp_item.children.length + 1;
+															// create new elements and set attributes
+															var add_item  = document.createElement('tr');
+															var add_item2 = document.createElement('td');
+															var add_item3 = document.createTextNode(temp_count + '. ');
+															var add_item4 = document.createElement('input');
+															add_item4.type = 'text';
+															add_item4.className = 'input-text-filter form-control';
+															add_item4.name = temp_filter_id + '-roads-value' + temp_count;
+															add_item4.placeholder = '< enter value here >';
+															var add_item5 = document.createElement('td');
+															var add_item6 = document.createElement('button');
+															add_item6.className = 'remove-list-item-button btn';
+															add_item6.id = temp_filter_id + '-roads-value' + temp_count
+															add_item6.addEventListener('click', removeFilterTypeEntry);
+															var add_item7 = document.createTextNode('x');
+															// add elements together
+															add_item6.appendChild(add_item7);
+															add_item5.appendChild(add_item6);
+															add_item2.appendChild(add_item3);
+															add_item2.appendChild(add_item4);
+															add_item.appendChild(add_item2);
+															add_item.appendChild(add_item5);
+															// add complete element to current table
+															temp_item.appendChild(add_item);
+														">+</button>
+													</div>
+												</div>
+												<div class="filters-type">
+													<div class="filters-type-header"><span>Parameters:</span></div>
+													<div class="filters-entry">
+														<table class="filters-entry-list" id="list-roads-params-filter0">
+															<tr>
+																<td>Width:</td>
+																<td><input type="number" name="filter0-roads-param1" min="0" max="999" step="0.1" value="0" class="input-text-filter form-control"></td>
+															</tr>
+															<tr>
+																<td>Driveway fraction:</td>
+																<td><input type="number" name="filter0-roads-param2" min="0" max="1" step="0.01" value="0" class="input-text-filter form-control"></td>
+															</tr>
+															<tr>
+																<td>Layer:</td>
+																<td><input type="number" name="filter0-roads-param3" min="0" max="999" step="1" value="0" class="input-text-filter form-control"></td>
+															</tr>
+															<tr>
+																<td>Layer height:</td>
+																<td><input type="number" name="filter0-roads-param4" min="0" max="9999" step="0.1" value="0" class="input-text-filter form-control"></td>
+															</tr>
+															<tr>
+																<td>Road offset:</td>
+																<td><input type="number" name="filter0-roads-param5" min="0" max="9999" step="0.1" value="0" class="input-text-filter form-control"></td>
+															</tr>
+															<tr>
+																<td>Sidewalk offset:</td>
+																<td><input type="number" name="filter0-roads-param6" min="0" max="9999" step="0.1" value="0" class="input-text-filter form-control"></td>
+															</tr>
+														</table>
+													</div>
+												</div>
+											</div>
+											<div class="tab-pane fade" id="filter-type-water-filter0">
+												<div class="filters-type">
+													<div class="filters-type-header"><span>Values:</span></div>
+													<div class="filters-entry">
+														<table class="filters-entry-list" id="list-water-values-filter0">
+															<tr>
+																<td>1. <input type="text" name="filter0-water-value1" class="input-text-filter form-control" placeholder="< enter value here >"></td>
+															</tr>
+														</table>
+														<button class="add-list-item-button btn" id="button-water-values-filter0" onclick="
+															// get current filter number
+															var temp_filter_id = String(this.id).replace('button-water-values-', '');
+															// get current table entries
+															var temp_item = document.getElementById('list-water-values-' + temp_filter_id).children[0];
+															// get table entry count and add 1
+															var temp_count = temp_item.children.length + 1;
+															// create new elements and set attributes
+															var add_item  = document.createElement('tr');
+															var add_item2 = document.createElement('td');
+															var add_item3 = document.createTextNode(temp_count + '. ');
+															var add_item4 = document.createElement('input');
+															add_item4.type = 'text';
+															add_item4.className = 'input-text-filter form-control';
+															add_item4.name = temp_filter_id + '-water-value' + temp_count;
+															add_item4.placeholder = '< enter value here >';
+															var add_item5 = document.createElement('td');
+															var add_item6 = document.createElement('button');
+															add_item6.className = 'remove-list-item-button btn';
+															add_item6.id = temp_filter_id + '-water-value' + temp_count
+															add_item6.addEventListener('click', removeFilterTypeEntry);
+															var add_item7 = document.createTextNode('x');
+															// add elements together
+															add_item6.appendChild(add_item7);
+															add_item5.appendChild(add_item6);
+															add_item2.appendChild(add_item3);
+															add_item2.appendChild(add_item4);
+															add_item.appendChild(add_item2);
+															add_item.appendChild(add_item5);
+															// add complete element to current table
+															temp_item.appendChild(add_item);
+														">+</button>
+													</div>
+												</div>
+												<div class="filters-type">
+													<div class="filters-type-header"><span>Parameters:</span></div>
+													<div class="filters-entry">
+														<table class="filters-entry-list" id="list-water-params-filter0">
+															<tr>
+																<td>Width:</td>
+																<td><input type="number" name="filter0-water-param1" min="0" max="9999" step="0.1" value="0" class="input-text-filter form-control"></td>
+															</tr>
+															<tr>
+																<td>Depth:</td>
+																<td><input type="number" name="filter0-water-param2" min="0" max="9999" step="0.1" value="0" class="input-text-filter form-control"></td>
+															</tr>
+														</table>
+													</div>
+												</div>
+											</div>
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+						<button class="add-filter-button btn" onclick="addFilter()">+</button>
+						<script>
+						// add first filter to list
+						addFilter();
+						// set first filter to be opened by default
+						//document.getElementById('collapse-filter1').setAttribute('class', 'panel-collapse in');
+						</script>
+					</div>
+					<hr>
+				</div>
+				<div id="export" class="tab-pane fade">
+					<div class="intro-text">
+						<span>
+						This tab allows you to export the data to your Google Drive. Since the calculation of the terrain model can be slow,
+						especially if relatively large project bounds are selected, the export might take a while (i.e. a couple of hours).
+						Therefore we recommend to first visualize results on the map and zoom in to details and when satisfied start the export.
+						The export will keep running after you close this page or turn off your device, so you are free to do other things
+						while you wait for the export to finish.
+						</span>
+					</div>
+					<hr>
+					<div class="sub-element">
+						<div class="sub-header"><span>Project info</span></div>
+						<span>This will show relevant information about the current project, after the previous steps have been completed.</span>
+						<table class="project-info">
+							<tr>
+								<td>UTM zone:</td>
+								<td><div id="project-info-utm">####</div></td>
+							</tr>
+							<tr>
+								<td>Bounding box size [km<sup>2</sup>]:</td>
+								<td><div id="project-info-size">####</div></td>
+							</tr>
+							<tr>
+								<td>Number of pixels:</td>
+								<td><div id="project-info-pixels">####</div></td>
+							</tr>
+						</table>
+					</div>
+					<hr>
+					<div class="sub-element">
+						<div class="sub-header"><span>Export options (IN DEVELOPMENT):</span>
+							<button class="info-button btn btn-default btn-xs" id="info-button-export">i</button>
+							<div class="info-export">
+								<!-- text for Google Drive export -->
+								<!--
+								<span>
+								The files will be stored on your Google Drive folder using the specified filenames.
+								The Digital Terrain Model (DTM) and Digital Surface Model (DSM) are stored as a GeoTIFF, while the metadata is stored as a JSON file.
+								</span>
+								-->
+								<!-- text for getDownloadURL -->
+								<span>
+								After clicking the Export button, download links will appear below, which when clicked will open a new tab from which the download will start.
+								Once started, the tab will automatically close. The Digital Terrain Model (DTM) and Digital Surface Model (DSM) are downloaded as zipped GeoTIFF files, 
+								while the metadata is downloaded as a JSON file. A filename for the to be downloaded data can be entered below. If omitted, a default filename is used.
+								Download links will remain active for 5 minutes, after which they are cleared.<br><br>
+								<b>NOTE:</b> Due to limitations with the current implementation of the download option, there is a constraint on the to-be-downloaded file size.
+								The file size is related to the size of the area and the chosen cell size. If the zip file you receive is corrupted, try reducing these parameters and
+								retry the download. We are working on a better implementation of the download option, which will remove all area constraints and other issues.
+								</span>
+							</div>
+							<!-- toggle the info panel -->
+							<script>
+							$("#info-button-export").click(function () {
+								$(".info-export").toggleClass("info-export-shown");
+							});
+							</script>
+						</div>
+						<!-- filename input -->
+						<span>Enter the desired filename and other options here:</span>
+						<input type="text" id="export-DTM-filename" class="input-text form-control" placeholder="< file name DTM >">
+						<input type="text" id="export-DSM-filename" class="input-text form-control" placeholder="< file name DSM >">
+						<input type="text" id="export-metadata-filename" class="input-text form-control" placeholder="< file name metadata >">
+						<!-- download links -->
+						<div class="download_panel">
+							<div id="download_prep">
+								<span>Preparing download link(s)...</span>
+							</div>
+							<a id="link_dtm" target="_blank">Click here to download DTM</a>
+							<a id="link_dsm" target="_blank">Click here to download DSM</a>
+							<a id="link_metadata" target="_blank">Click here to download metadata</a>
+						</div>
+						<!-- buttons -->
+						<div class="horizontal-buttons-list">
+							<button class="visualize-button btn btn-primary" onclick="getOSMterrain()">Visualize</button>
+							<button class="export-button btn btn-primary" onclick="exportOSMterrain()">Export</button>
+						</div>
+						<div class="export-explain-text">
+							<span>
+							NOTE: Visualization shows the results without a few operations that are computationally intensive, which are only executed when the results are exported.
+							It can still take a few minutes before results are shown on the map. File names are only relevant for export, not for visualization.
+							</span>
+						</div>
+					</div>
+					<hr>
+				</div>
+				<div id="geojson" class="tab-pane fade">
+					<button class="apply-config-button btn btn-primary" onclick="applyConfig()">Apply configuration</button>
+					<div id="my-code-wrapper" data-language="json"></div>
+				</div>
+				<div id="help" class="tab-pane fade">
+					<div class="intro-text">
+						<span>
+						This tab provides a bit of background information on the application, as well as a few guidelines on how to use it.
+						</span>
+					</div>
+					<hr>
+					<div class="sub-element">
+						<div class="sub-header"><span>Example</span></div>
+						<span>
+						To get a first impression of the application and its potential results, an example can be loaded in.
+						This will enter values in all the relevant input fields (OSM features, general project settings, filters, etc.).
+						You can change these or add additional filters as you see fit. To inspect the data and the results, simply click
+						the relevant buttons.<br><br>
+						<i><b>Warning:</b> this will remove all current filters and map layers! Make sure your work is saved (copy the configuration) before loading the example.</i><br>
+						</span>
+						<button class="load-example-button btn btn-primary" onclick="loadExample()">Load in Dar es Salaam example</button>
+					</div>
+					<hr>
+					<div class="sub-element">
+						<div class="sub-header"><span>Disclaimer</span></div>
+						<a href="https://www.deltares.nl/en/disclaimer/" target="_blank">Terms of Use</a>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- all ajax calls go here -->
+	<script src="static/js/ajax.js"></script>
+	<!-- functions used also during setup -->
+	<script src="static/js/functions.js"></script>
+	<!-- code that only runs during setup -->
+	<script src="static/js/setup.js"></script>
+	<!-- code to handle editor -->
+	<script src="static/js/editor.js"></script>
+	<!-- leaflet map drawing code -->
+	<script src="static/js/map.js"></script>
+	<script type="text/javascript">
+		loadExample();
+		buildUI();
+	</script>
+	<script>
+		(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+		(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+		m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+		})(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+		ga('create', 'UA-98401686-1', 'auto');
+		ga('send', 'pageview');
+	</script>
+	<!-- TODO add Google sign in button layout from SVN58 index.html -->
+
+</body>
+
+</html>
